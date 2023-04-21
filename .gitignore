@@ -1,3 +1,8 @@
+# colcon ignores
+build/
+install/
+log/
+
 devel/
 logs/
 build/
