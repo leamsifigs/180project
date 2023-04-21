@@ -1,3 +1,6 @@
+#vscode
+.vscode/
+
 # colcon ignores
 build/
 install/
