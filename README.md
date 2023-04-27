@@ -3,13 +3,11 @@ Final Project for CSE 180. Using ROS2, C++ and gazebo.
 
 To do list:
 
-    get robot to move around environment (probably gonna make it move along a predetermined path around the environment)
+- get robot to move around environment (probably gonna make it move along a predetermined path around the environment)
 
-    find pillar (probably by comparing local cost map to global cost map)
+- find pillar (probably by comparing local cost map to global cost map)
 
-    collision prevention
-    
-    hi
+- collision prevention
 
 
 
