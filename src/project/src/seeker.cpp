@@ -47,14 +47,43 @@ int main(int argc,char **argv) {
   while ( ! navigator.IsTaskComplete() ) {
     
   }
-  goal_pos->position.x = 2;
-  goal_pos->position.y = -1;
+ // test FollowWaypoints
+  geometry_msgs::msg::PoseStamped p1,p2,p3;
+    p1.pose.position.x = -2;
+    p1.pose.position.y = -1;
+    p1.pose.orientation.w = 2;
+
+    p2.pose.position.x = -2;
+    p2.pose.position.y = 1;
+
+    p3.pose.position.x = 2;
+    p3.pose.position.y = 1;
+
+
+  std::vector<geometry_msgs::msg::PoseStamped> pointList;
+    pointList.push_back(p1);
+    pointList.push_back(p2);
+    pointList.push_back(p3);
+    navigator.FollowWaypoints(pointList);
+  while ( ! navigator.IsTaskComplete() ) {
+    
+  }
+  auto result = navigator.GetResult(); 
+  if ( result == rclcpp_action::ResultCode::SUCCEEDED ) 
+    std::cout << "FollowWaypoints action succeeded" << std::endl;
+  else
+    std::cout << "FollowWaypoints goal was not achieved" << std::endl;
+
+  goal_pos->position.x = -2;
+  goal_pos->position.y = -0.5;
   goal_pos->orientation.w = 1;
   navigator.GoToPose(goal_pos);
   // move to new pose
   while ( ! navigator.IsTaskComplete() ) {
-    
+  
   }
+
+
   // backup of 0.15 m (deafult distance)
   navigator.Backup();
   while ( ! navigator.IsTaskComplete() ) {
