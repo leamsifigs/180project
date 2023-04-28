@@ -18,12 +18,51 @@ limitations under the License.
 #include <navigation/navigation.hpp>
 #include <iostream>
 
+//before robot is able to update the cost map at all, store a copy of the global cost map
+//after each laser scan, compare the updated local cost map to the original global cost map
+
+//or try this
+
+//copy the map to a variable
+//after each laser scan, if there are x lasers that are detecting a wall that is not on the map, that is likely a pillar
+
+//do math to find the location
+
+
+nav_msgs::msg::OccupancyGrid map;
+std::vector<int8_t, std::allocator<int8_t>> mapVector;
+bool mapReceived = false;
+
+void mapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
+
+  if (mapReceived) return;
+
+  mapReceived = true;
+  mapVector = msg->data;
+  int width = msg->info.width;
+  int height = msg->info.height;
+
+  for (int i = 0; i < height; i++){ //for each row
+
+    for (int j = 0; j < width; j++){ //for each column
+      std::cout << int(msg->data[i*width+j]) << " ";
+    }
+    std::cout << std::endl;
+  }
+  return;
+}
+
 
 
 int main(int argc,char **argv) {
  
   rclcpp::init(argc,argv); // initialize ROS 
   Navigator navigator(true,false); // create node with debug info but not verbose
+
+  rclcpp::Node::SharedPtr nodeh = rclcpp::Node::make_shared("seeker");
+  auto sub = nodeh->create_subscription<nav_msgs::msg::OccupancyGrid>("/map",1000,&mapcallback);
+  rclcpp::spin(nodeh);
+
 
   // first: it is mandatory to initialize the pose of the robot
   geometry_msgs::msg::Pose::SharedPtr init = std::make_shared<geometry_msgs::msg::Pose>();
@@ -38,12 +77,18 @@ int main(int argc,char **argv) {
   while ( ! navigator.IsTaskComplete() ) {
     // busy waiting for task to be completed
   }
+
+  //create goal pose
   geometry_msgs::msg::Pose::SharedPtr goal_pos = std::make_shared<geometry_msgs::msg::Pose>();
   goal_pos->position.x = 2;
   goal_pos->position.y = 1;
   goal_pos->orientation.w = 1;
+
+
   // move to new pose
   navigator.GoToPose(goal_pos);
+
+  //the while loops are so the code waits for the robot to complete its task
   while ( ! navigator.IsTaskComplete() ) {
     
   }
