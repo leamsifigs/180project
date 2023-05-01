@@ -24,6 +24,7 @@ find_package(nav2_msgs REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
 find_package(action_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 
 if(BUILD_TESTING)
@@ -61,7 +62,7 @@ target_include_directories(testpackage
 ament_target_dependencies(navigator rclcpp geometry_msgs lifecycle_msgs rclcpp_action nav2_msgs)
 ament_export_targets(navigatorlib HAS_LIBRARY_TARGET)
 ament_export_dependencies(rclcpp geometry_msgs lifecycle_msgs rclcpp_action nav2_msgs)
-ament_target_dependencies(seeker rclcpp geometry_msgs lifecycle_msgs rclcpp_action nav2_msgs)
+ament_target_dependencies(seeker rclcpp geometry_msgs lifecycle_msgs rclcpp_action nav2_msgs sensor_msgs)
 ament_target_dependencies(testpackage rclcpp geometry_msgs lifecycle_msgs rclcpp_action nav2_msgs)
 
 
