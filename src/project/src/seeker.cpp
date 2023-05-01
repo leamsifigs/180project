@@ -17,6 +17,7 @@ limitations under the License.
 #include <rclcpp/rclcpp.hpp> 
 #include <navigation/navigation.hpp>
 #include <iostream>
+#include <sensor_msgs/msg/laser_scan.hpp>
 
 //before robot is able to update the cost map at all, store a copy of the global cost map
 //after each laser scan, compare the updated local cost map to the original global cost map
@@ -52,7 +53,40 @@ void mapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
   return;
 }
 
+float angle_min, angle_max, angle_increment, time_increment, scan_time, range_min, range_max;
+// float ranges[];
+// float intensities[];
 
+void lasercallback(const sensor_msgs::msg::LaserScan::SharedPtr msg){
+
+  // Angle Min: 0
+  // Angle Max: 6.28
+  // Angle Increment: 0.017493
+  // Time Increment: 0
+  // Scan Time: 0
+  // Range Min: 0.12
+  // Range Max: 3.5
+
+  angle_min = msg->angle_min;
+  angle_max = msg->angle_max;
+  angle_increment = msg->angle_increment;
+  time_increment = msg->time_increment;
+  scan_time = msg->scan_time;
+  range_min = msg-> range_min;
+  range_max = msg->range_max;
+
+  std::cout << "Angle Min: " << angle_min << std::endl;
+  std::cout << "Angle Max: " << angle_max << std::endl;
+  std::cout << "Angle Increment: " << angle_increment << std::endl;
+  std::cout << "Time Increment: " << time_increment << std::endl;
+  std::cout << "Scan Time: " << scan_time << std::endl;
+  std::cout << "Range Min: " << range_min << std::endl;
+  std::cout << "Range Max: " << range_max << std::endl;
+
+  std::cout << std::endl;
+
+
+}
 
 int main(int argc,char **argv) {
  
@@ -61,7 +95,8 @@ int main(int argc,char **argv) {
 
   rclcpp::Node::SharedPtr nodeh = rclcpp::Node::make_shared("seeker");
   auto sub = nodeh->create_subscription<nav_msgs::msg::OccupancyGrid>("/map",1000,&mapcallback);
-  rclcpp::spin(nodeh);
+  auto laserSub = nodeh->create_subscription<sensor_msgs::msg::LaserScan>("/scan",1000,&lasercallback); //set up subscription for laser
+  // rclcpp::spin(nodeh);
 
 
   // first: it is mandatory to initialize the pose of the robot
@@ -76,6 +111,7 @@ int main(int argc,char **argv) {
   navigator.Spin();
   while ( ! navigator.IsTaskComplete() ) {
     // busy waiting for task to be completed
+    rclcpp::spin_some(nodeh);
   }
 
   //create goal pose
