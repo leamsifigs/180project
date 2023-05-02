@@ -18,6 +18,11 @@ limitations under the License.
 #include <navigation/navigation.hpp>
 #include <iostream>
 #include <sensor_msgs/msg/laser_scan.hpp>
+#include <cmath>
+#include <math.h>
+#include <geometry_msgs/msg/point.hpp>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 //before robot is able to update the cost map at all, store a copy of the global cost map
 //after each laser scan, compare the updated local cost map to the original global cost map
@@ -75,15 +80,89 @@ void lasercallback(const sensor_msgs::msg::LaserScan::SharedPtr msg){
   range_min = msg-> range_min;
   range_max = msg->range_max;
 
-  std::cout << "Angle Min: " << angle_min << std::endl;
-  std::cout << "Angle Max: " << angle_max << std::endl;
-  std::cout << "Angle Increment: " << angle_increment << std::endl;
-  std::cout << "Time Increment: " << time_increment << std::endl;
-  std::cout << "Scan Time: " << scan_time << std::endl;
-  std::cout << "Range Min: " << range_min << std::endl;
-  std::cout << "Range Max: " << range_max << std::endl;
+  // std::cout << "Angle Min: " << angle_min << std::endl;
+  // std::cout << "Angle Max: " << angle_max << std::endl;
+  // std::cout << "Angle Increment: " << angle_increment << std::endl;
+  // std::cout << "Time Increment: " << time_increment << std::endl;
+  // std::cout << "Scan Time: " << scan_time << std::endl;
+  // std::cout << "Range Min: " << range_min << std::endl;
+  // std::cout << "Range Max: " << range_max << std::endl;
+  // std::cout << std::endl;
 
-  std::cout << std::endl;
+  for (auto it = msg->ranges.begin(); it != msg->ranges.end(); ++it){ //iterate through each laser reading
+    //first, we need to find the x and y coords for each laser 
+    if(!std::isinf(*it)){ // if the reading is not infinity
+      // std::cout << *it << ", ";
+
+      //chat gpt code
+
+      // std::shared_ptr<tf2_ros::Buffer> tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+      // std::shared_ptr<tf2_ros::TransformListener> tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
+
+      // geometry_msgs::msg::Point laser_point;
+      // laser_point.x = msg->ranges[0] * std::cos(msg->angle_min);
+      // laser_point.y = msg->ranges[0] * std::sin(msg->angle_min);
+      // laser_point.z = 0.0;
+
+      // // Transform the laser scan data from the sensor frame to the base frame of the robot
+      // geometry_msgs::msg::Transform sensor_to_base_transform = tf_buffer_->lookupTransform(
+      //   "base_link", msg->header.frame_id, laser_point.header.stamp, rclcpp::Duration::from_seconds(0.1));
+
+      // tf2::doTransform(laser_point, laser_point, sensor_to_base_transform);
+
+      // // Transform the laser scan data from the base frame of the robot to the world frame
+      // geometry_msgs::msg::Transform base_to_world_transform = tf_buffer_->lookupTransform(
+      //   "world", "base_link", laser_point.header.stamp, rclcpp::Duration::from_seconds(0.1));
+
+      // tf2::doTransform(laser_point, laser_point, base_to_world_transform);
+
+      // // Extract the position where the laser landed in the world frame
+      // RCLCPP_INFO(this->get_logger(), "Laser landed at (%f, %f, %f) in world frame",
+      //             laser_point.point.x, laser_point.point.y, laser_point.point.z);
+
+
+
+
+    }
+
+
+    // std::cout << *it << ", " << std::endl;
+  }
+
+  // std::cout << std::endl;
+
+
+}
+
+nav_msgs::msg::OccupancyGrid firstcostmap;
+nav_msgs::msg::OccupancyGrid::SharedPtr mostrecentcostmap;
+bool gotFirstCostmap = false;
+
+void costmapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
+  mostrecentcostmap = msg;
+  if (!gotFirstCostmap){
+    gotFirstCostmap = true;
+
+    firstcostmap = *msg;
+
+    int width = msg->info.width;
+    int height = msg->info.height;
+
+    for (int i = 0; i < height; i++){ //for each row
+
+      for (int j = 0; j < width; j++){ //for each column
+        if(msg->data[i*width+j] == 100){
+          firstcostmap.data[i*width+j] = 1;
+        } else{
+          firstcostmap.data[i*width+j] = 0;
+        }
+        std::cout << int(firstcostmap.data[i*width+j]) << " ";
+      }
+      std::cout << std::endl;
+    }
+  }
+
 
 
 }
@@ -96,6 +175,7 @@ int main(int argc,char **argv) {
   rclcpp::Node::SharedPtr nodeh = rclcpp::Node::make_shared("seeker");
   auto sub = nodeh->create_subscription<nav_msgs::msg::OccupancyGrid>("/map",1000,&mapcallback);
   auto laserSub = nodeh->create_subscription<sensor_msgs::msg::LaserScan>("/scan",1000,&lasercallback); //set up subscription for laser
+  auto globalcostmapSub = nodeh->create_subscription<nav_msgs::msg::OccupancyGrid>("/global_costmap/costmap",1000,&costmapcallback); //set up subscription for laser
   // rclcpp::spin(nodeh);
 
 
@@ -111,7 +191,7 @@ int main(int argc,char **argv) {
   navigator.Spin();
   while ( ! navigator.IsTaskComplete() ) {
     // busy waiting for task to be completed
-    rclcpp::spin_some(nodeh);
+    // rclcpp::spin_some(nodeh);
   }
 
   //create goal pose
@@ -121,13 +201,24 @@ int main(int argc,char **argv) {
   goal_pos->orientation.w = 1;
 
 
+  goal_pos->position.x = -0.5;  //move robot to face sample pillar
+  goal_pos->position.y = -1.5;
+  goal_pos->orientation.w = -1;
+
   // move to new pose
   navigator.GoToPose(goal_pos);
 
   //the while loops are so the code waits for the robot to complete its task
   while ( ! navigator.IsTaskComplete() ) {
-    
+    rclcpp::spin_some(nodeh);
   }
+
+  gotFirstCostmap = false;
+  // nav_msgs::msg::OccupancyGrid tempcostmap = mostrecentcostmap;
+  // nav_msgs::msg::OccupancyGrid::SharedPtr costmap_ptr();
+  costmapcallback(mostrecentcostmap);
+
+
  // test FollowWaypoints
   geometry_msgs::msg::PoseStamped p1,p2,p3;
     p1.pose.position.x = -2;
@@ -147,7 +238,7 @@ int main(int argc,char **argv) {
     pointList.push_back(p3);
     navigator.FollowWaypoints(pointList);
   while ( ! navigator.IsTaskComplete() ) {
-    
+    // rclcpp::spin_some(nodeh);
   }
   auto result = navigator.GetResult(); 
   if ( result == rclcpp_action::ResultCode::SUCCEEDED ) 
@@ -171,8 +262,11 @@ int main(int argc,char **argv) {
     
   }
 
+
+
   // complete here....
   
+
   rclcpp::shutdown(); // shutdown ROS
   return 0;
 }
