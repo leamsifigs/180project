@@ -153,17 +153,26 @@ void costmapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
 
       for (int j = 0; j < width; j++){ //for each column
         if(msg->data[i*width+j] == 100){
-          firstcostmap.data[i*width+j] = 1;
+          firstcostmap.data[(height-1-i)*width+j] = 1;
         } else{
-          firstcostmap.data[i*width+j] = 0;
+          firstcostmap.data[(height-1-i)*width+j] = 0;
         }
+        // std::cout << int(firstcostmap.data[i*width+j]) << " ";
+      }
+      // std::cout << std::endl;
+    }
+
+    for (int i = 0; i < height; i++){ //for each row
+
+      for (int j = 0; j < width; j++){ //for each column
         std::cout << int(firstcostmap.data[i*width+j]) << " ";
       }
       std::cout << std::endl;
     }
+
   }
 
-
+  
 
 }
 
