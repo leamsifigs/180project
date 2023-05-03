@@ -135,46 +135,126 @@ void lasercallback(const sensor_msgs::msg::LaserScan::SharedPtr msg){
 
 }
 
-nav_msgs::msg::OccupancyGrid firstcostmap;
+nav_msgs::msg::OccupancyGrid::SharedPtr firstcostmap;
 nav_msgs::msg::OccupancyGrid::SharedPtr mostrecentcostmap;
 bool gotFirstCostmap = false;
 
 void costmapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
-  mostrecentcostmap = msg;
+  
+  try{
+    delete mostrecentcostmap; //prevent memory leaks :)
+  }
+
+  mostrecentcostmap = new nav_msgs::msg::OccupancyGrid::SharedPtr(*msg); //this could be wrong
+
+
+  int width = msg->info.width;
+  int height = msg->info.height;
+
+  for (int i = 0; i < height; i++){ //for each row
+
+    for (int j = 0; j < width; j++){ //for each column  //map gets vertically inverted here and also we only care about walls
+      if(msg->data[i*width+j] == 100){
+        mostrecentcostmap->data[(height-1-i)*width+j] = 1;
+      } else{
+        mostrecentcostmap->data[(height-1-i)*width+j] = 0;
+      }
+      // std::cout << int(firstcostmap.data[i*width+j]) << " ";
+    }
+    // std::cout << std::endl;
+  }
+
+
+  
   if (!gotFirstCostmap){
     gotFirstCostmap = true;
+    firstcostmap = new nav_msgs::msg::OccupancyGrid::SharedPtr(*mostrecentcostmap); //if its the first map we ever get, copy it to this
 
-    firstcostmap = *msg;
+    // print_costmap(firstcostmap);
+  } else{
+    //if not the first, then compare it to the first 
+    // nav_msgs::msg::OccupancyGrid::SharedPtr newWallMap = generate_new_wall_map(); //FIXME replace this function call when it is implemented
+    geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(firstcostmap, newWallmap);
+    
+    // print_costmap(mostrecentcostmap);
+  }
 
-    int width = msg->info.width;
-    int height = msg->info.height;
+  
+  
 
-    for (int i = 0; i < height; i++){ //for each row
+}
 
-      for (int j = 0; j < width; j++){ //for each column
-        if(msg->data[i*width+j] == 100){
-          firstcostmap.data[(height-1-i)*width+j] = 1;
-        } else{
-          firstcostmap.data[(height-1-i)*width+j] = 0;
-        }
-        // std::cout << int(firstcostmap.data[i*width+j]) << " ";
-      }
-      // std::cout << std::endl;
+void print_costmap(const sensor_msgs::msg::LaserScan::SharedPtr costmap){
+
+  int width = costmap->info.width;
+  int height = costmap->info.height;
+
+  for (int i = 0; i < height; i++){ //for each row
+
+    for (int j = 0; j < width; j++){ //for each column
+      std::cout << int(firstcostmap.data[i*width+j]) << " ";
     }
 
-    for (int i = 0; i < height; i++){ //for each row
+    std::cout << std::endl;
+  }
 
-      for (int j = 0; j < width; j++){ //for each column
-        std::cout << int(firstcostmap.data[i*width+j]) << " ";
-      }
-      std::cout << std::endl;
+  return;
+}
+
+
+
+
+int count_cell_neighbors(nav_msgs::msg::OccupancyGrid::SharedPtr grid, int current_row, int current_column, int width, int height){
+  int count = 0;
+  for(int i = -1; i < 2; i++){ //for each row in 3x3 grid
+    for (int j = -1; j < 2; j++){ //for 3 columns
+      if (i == 0 && j == 0) continue; //we dont need to look at the cell itself
+
+      int row = current_row + i;
+      int column = current_column + j;
+      if (row < 0 || row >= height || column < 0 || column >= width) continue; //this would be out of range, skip to avoid segfault
+
+      if (grid->data[row*width+column] == 1) count++; //count cell if it has a wall
+
     }
 
   }
 
-  
-
+  return count;
 }
+
+geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(nav_msgs::msg::OccupancyGrid::SharedPtr originalCostmap, nav_msgs::msg::OccupancyGrid::SharedPtr newWallMap){ //only pass in a map that has ONLY walls that are not detected in the original costmap
+  //returns coords of the pillar if found, otherwise returns nullptr
+
+  geometry_msgs::msg::Point::SharedPtr pillar_location = nullptr;
+  int width = newWallMap->info.width;
+  int height = newWallMap->info.height;
+
+  //potentially add a check for whether a new wall is one space next to an original wall (could potentially be the wall shifting over due to error)
+
+  for (int i = 0; i < height; i++){ //for each row
+
+      for (int j = 0; j < width; j++){ //for each column
+        
+        if( && count_cell_neighbors(newWallMap, i, j, width, height) >= 4){ //if there are at least 4 new nearby walls, get the coords of this cell
+          //need to convert them to world coords
+          pillar_location = new geometry_msgs::msg::Point();
+          pillar_location->z = 0;
+          //200,200 is the center pillar's location (the origin of the world)
+          // 384 array elements for a row/column, 20 meters for the side length of the map in world coords 384/20 = 19.2 array cells per gazebo meter
+          pillar_location->x = (j-200)/12;  //FIXME trying 12 based on algebraically solving for the conversion rate to get real coordinate location
+          pillar_location->y = -(i-200)/12;
+
+          std::cout << "Pillar wall at" << pillar_location->x << ", " << pillar_location->y << "(" << i << ", " << j << ")" <<std::endl; //for debug purposes we are printing every wall that could be part of the pillar
+        }
+
+      }
+    }
+
+
+  return pillar_location;
+}
+
 
 int main(int argc,char **argv) {
  
@@ -182,9 +262,9 @@ int main(int argc,char **argv) {
   Navigator navigator(true,false); // create node with debug info but not verbose
 
   rclcpp::Node::SharedPtr nodeh = rclcpp::Node::make_shared("seeker");
-  auto sub = nodeh->create_subscription<nav_msgs::msg::OccupancyGrid>("/map",1000,&mapcallback);
-  auto laserSub = nodeh->create_subscription<sensor_msgs::msg::LaserScan>("/scan",1000,&lasercallback); //set up subscription for laser
-  auto globalcostmapSub = nodeh->create_subscription<nav_msgs::msg::OccupancyGrid>("/global_costmap/costmap",1000,&costmapcallback); //set up subscription for laser
+  // auto sub = nodeh->create_subscription<nav_msgs::msg::OccupancyGrid>("/map",1000,&mapcallback);
+  // auto laserSub = nodeh->create_subscription<sensor_msgs::msg::LaserScan>("/scan",1000,&lasercallback); //set up subscription for laser
+  auto globalcostmapSub = nodeh->create_subscription<nav_msgs::msg::OccupancyGrid>("/global_costmap/costmap",1000,&costmapcallback); //set up subscription for costmaps
   // rclcpp::spin(nodeh);
 
 
@@ -222,10 +302,12 @@ int main(int argc,char **argv) {
     rclcpp::spin_some(nodeh);
   }
 
-  gotFirstCostmap = false;
+  // gotFirstCostmap = false;
+  // costmapcallback(mostrecentcostmap);
+
   // nav_msgs::msg::OccupancyGrid tempcostmap = mostrecentcostmap;
   // nav_msgs::msg::OccupancyGrid::SharedPtr costmap_ptr();
-  costmapcallback(mostrecentcostmap);
+  
 
 
  // test FollowWaypoints
