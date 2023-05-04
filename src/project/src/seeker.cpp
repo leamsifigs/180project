@@ -186,9 +186,9 @@ void costmapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
 }
 
 
-nav_msgs::msg::OccupancyGrid costmapcomparison(const nav_msgs::msg::OccupancyGrid::SharedPtr firstmap, const nav_msgs::msg::OccupancyGrid::SharedPtr recentmap){
+nav_msgs::msg::OccupancyGrid::SharedPtr costmapcomparison(const nav_msgs::msg::OccupancyGrid::SharedPtr firstmap, const nav_msgs::msg::OccupancyGrid::SharedPtr recentmap){
     
-  nav_msgs::msg::OccupancyGrid comparisoncostmap;
+  nav_msgs::msg::OccupancyGrid::SharedPtr comparisoncostmap;
 
   int width = recentmap->info.width;
   int height = recentmap->info.height;
@@ -197,9 +197,9 @@ nav_msgs::msg::OccupancyGrid costmapcomparison(const nav_msgs::msg::OccupancyGri
 
       for (int j = 0; j < width; j++){ //for each column
         if(recentmap->data[i*width+j] == 1 && firstmap->data[i*width+j] == 0){
-          comparisoncostmap.data[i*width+j] = 1;
+          comparisoncostmap->data[i*width+j] = 1;
         } else{
-          comparisoncostmap.data[i*width+j] = 0;
+          comparisoncostmap->data[i*width+j] = 0;
         }
 
       }
