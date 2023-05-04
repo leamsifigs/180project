@@ -34,9 +34,16 @@ limitations under the License.
 
 //do math to find the location
 
+class Points {
+  public:
+    geometry_msgs::msg::Point point;
+    int count = 0;
+};
+
 
 nav_msgs::msg::OccupancyGrid map;
 std::vector<int8_t, std::allocator<int8_t>> mapVector;
+std::vector<Points> pointCount;
 bool mapReceived = false;
 
 void mapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
