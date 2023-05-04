@@ -135,77 +135,33 @@ void lasercallback(const sensor_msgs::msg::LaserScan::SharedPtr msg){
 
 }
 
-nav_msgs::msg::OccupancyGrid::SharedPtr firstcostmap;
-nav_msgs::msg::OccupancyGrid::SharedPtr mostrecentcostmap;
+nav_msgs::msg::OccupancyGrid firstcostmap;
+nav_msgs::msg::OccupancyGrid mostrecentcostmap;
 bool gotFirstCostmap = false;
 
-void costmapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
-  
-  // try{
-  //   delete mostrecentcostmap; //prevent memory leaks :)
-  // }
-
-  mostrecentcostmap = msg; //this could be wrong
-
-
-  int width = msg->info.width;
-  int height = msg->info.height;
-
-  for (int i = 0; i < height; i++){ //for each row
-
-    for (int j = 0; j < width; j++){ //for each column  //map gets vertically inverted here and also we only care about walls
-      if(msg->data[i*width+j] == 100){
-        mostrecentcostmap->data[(height-1-i)*width+j] = 1;
-      } else{
-        mostrecentcostmap->data[(height-1-i)*width+j] = 0;
-      }
-      // std::cout << int(firstcostmap.data[i*width+j]) << " ";
-    }
-    // std::cout << std::endl;
-  }
-
-
-  
-  if (!gotFirstCostmap){
-    gotFirstCostmap = true;
-    firstcostmap = mostrecentcostmap; //if its the first map we ever get, copy it to this
-
-    // print_costmap(firstcostmap);
-  } else{
-    //if not the first, then compare it to the first
-     
-    // nav_msgs::msg::OccupancyGrid::SharedPtr newWallmap = mostrecentcostmap;
-    nav_msgs::msg::OccupancyGrid::SharedPtr newWallMap = costmapcomparison(firstcostmap, mostrecentcostmap);
-    geometry_msgs::msg::Point::SharedPtr point = check_for_extra_pillars(firstcostmap, newWallMap);
-    
-    // print_costmap(mostrecentcostmap);
-  }
-
-  
-  
-
-}
-
-
-nav_msgs::msg::OccupancyGrid::SharedPtr costmapcomparison(const nav_msgs::msg::OccupancyGrid::SharedPtr firstmap, const nav_msgs::msg::OccupancyGrid::SharedPtr recentmap){
-    
-  nav_msgs::msg::OccupancyGrid::SharedPtr comparisoncostmap;
-
-  int width = recentmap->info.width;
-  int height = recentmap->info.height;
+nav_msgs::msg::OccupancyGrid costmapcomparison(nav_msgs::msg::OccupancyGrid firstmap, nav_msgs::msg::OccupancyGrid recentmap){
+  // std::cout << "initializing comparisoncostmap" << std::endl;
+  nav_msgs::msg::OccupancyGrid comparisoncostmap = recentmap;
+  // std::cout << "initialized comparisoncostmap" << std::endl;
+  int width = recentmap.info.width;
+  int height = recentmap.info.height;
 
   for (int i = 0; i < height; i++){ //for each row
 
       for (int j = 0; j < width; j++){ //for each column
-        if(recentmap->data[i*width+j] == 1 && firstmap->data[i*width+j] == 0){
-          comparisoncostmap->data[i*width+j] = 1;
+        if(recentmap.data[i*width+j] == 1 && firstmap.data[i*width+j] == 0){
+          // std::cout << "if condition works" << std::endl;
+          comparisoncostmap.data[i*width+j] = 1;
+          // std::cout << "updating comparisoncostmap works" << std::endl;
         } else{
-          comparisoncostmap->data[i*width+j] = 0;
+          // std::cout << "else condition works" << std::endl;
+          comparisoncostmap.data[i*width+j] = 0;
+          // std::cout << "updating comparisoncostmap works" << std::endl;
         }
 
       }
   }
-
+  // std::cout << "costmapcomparison() done! returning the map" << std::endl;
   return comparisoncostmap;
 
   
@@ -219,7 +175,24 @@ void print_costmap(const nav_msgs::msg::OccupancyGrid::SharedPtr costmap){
   for (int i = 0; i < height; i++){ //for each row
 
     for (int j = 0; j < width; j++){ //for each column
-      std::cout << int(firstcostmap->data[i*width+j]) << " ";
+      std::cout << int(costmap->data[i*width+j]) << " ";
+    }
+
+    std::cout << std::endl;
+  }
+
+  return;
+}
+
+void print_costmap(const nav_msgs::msg::OccupancyGrid costmap){
+
+  int width = costmap.info.width;
+  int height = costmap.info.height;
+
+  for (int i = 0; i < height; i++){ //for each row
+
+    for (int j = 0; j < width; j++){ //for each column
+      std::cout << int(costmap.data[i*width+j]) << " ";
     }
 
     std::cout << std::endl;
@@ -241,7 +214,7 @@ int count_cell_neighbors(nav_msgs::msg::OccupancyGrid::SharedPtr grid, int curre
       int column = current_column + j;
       if (row < 0 || row >= height || column < 0 || column >= width) continue; //this would be out of range, skip to avoid segfault
 
-      if (grid->data[row*width+column] == 1) count++; //count cell if it has a wall
+      if (grid->data[row*width+column] == 1 || grid->data[row*width+column] == 2) count++; //count cell if it has a wall
 
     }
 
@@ -250,13 +223,34 @@ int count_cell_neighbors(nav_msgs::msg::OccupancyGrid::SharedPtr grid, int curre
   return count;
 }
 
-geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(nav_msgs::msg::OccupancyGrid::SharedPtr originalCostmap, nav_msgs::msg::OccupancyGrid::SharedPtr newWallMap){ //only pass in a map that has ONLY walls that are not detected in the original costmap
+int count_cell_neighbors(nav_msgs::msg::OccupancyGrid grid, int current_row, int current_column, int width, int height){
+  int count = 0;
+  for(int i = -1; i < 2; i++){ //for each row in 3x3 grid
+    for (int j = -1; j < 2; j++){ //for 3 columns
+      if (i == 0 && j == 0) continue; //we dont need to look at the cell itself
+
+      int row = current_row + i;
+      int column = current_column + j;
+      if (row < 0 || row >= height || column < 0 || column >= width) continue; //this would be out of range, skip to avoid segfault
+
+      if (grid.data[row*width+column] == 1 || grid.data[row*width+column] == 2) count++; //count cell if it has a wall
+
+    }
+
+  }
+
+  return count;
+}
+
+geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(nav_msgs::msg::OccupancyGrid originalCostmap, nav_msgs::msg::OccupancyGrid newWallMap){ //only pass in a map that has ONLY walls that are not detected in the original costmap
   //returns coords of the pillar if found, otherwise returns nullptr
+
+  
 
   geometry_msgs::msg::Point::SharedPtr pillar_location = nullptr;
   // bool pillar_found = false;
-  int width = newWallMap->info.width;
-  int height = newWallMap->info.height;
+  int width = newWallMap.info.width;
+  int height = newWallMap.info.height;
 
   //potentially add a check for whether a new wall is one space next to an original wall (could potentially be the wall shifting over due to error)
 
@@ -270,6 +264,9 @@ geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(nav_msgs::msg::Occu
 
           //need to convert them to world coords
           // pillar_location = new geometry_msgs::msg::Point();
+
+          newWallMap.data[i*width+j] = 2; //for debug reasons, detected pillar walls will be a 2
+
           pillar_location = std::make_shared<geometry_msgs::msg::Point>();
           pillar_location->z = 0;
           //200,200 is the center pillar's location (the origin of the world)
@@ -277,16 +274,79 @@ geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(nav_msgs::msg::Occu
           pillar_location->x = (j-200)/12;  //FIXME trying 12 based on algebraically solving for the conversion rate to get real coordinate location
           pillar_location->y = -(i-200)/12;
 
-          std::cout << "Pillar wall at" << pillar_location->x << ", " << pillar_location->y << "(" << i << ", " << j << ")" <<std::endl; //for debug purposes we are printing every wall that could be part of the pillar
+          std::cout << "Pillar wall at " << pillar_location->x << ", " << pillar_location->y << " (" << i << ", " << j << ")" <<std::endl; //for debug purposes we are printing every wall that could be part of the pillar
         }
 
       }
     }
 
+    std::cout<< "PRINTING NEWWALLMAP (TWO IS A DETECTED PILLAR)" << std::endl;
+
+    print_costmap(newWallMap);
+
+    std::cout << std::endl; 
 
   return pillar_location;
 }
 
+void costmapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
+  
+  // try{
+  //   delete mostrecentcostmap; //prevent memory leaks :)
+  // }
+
+  mostrecentcostmap = *msg; //this could be wrong
+  // std::cout << "assigned mostrecentcostmap to message" << std::endl;
+
+  int width = msg->info.width;
+  int height = msg->info.height;
+
+  for (int i = 0; i < height; i++){ //for each row
+
+    for (int j = 0; j < width; j++){ //for each column  //map gets vertically inverted here and also we only care about walls
+      if(msg->data[i*width+j] == 100){
+        mostrecentcostmap.data[(height-1-i)*width+j] = 1;
+      } else{
+        mostrecentcostmap.data[(height-1-i)*width+j] = 0;
+      }
+      // std::cout << int(firstcostmap.data[i*width+j]) << " ";
+    }
+    // std::cout << std::endl;
+  }
+
+
+  
+  if (!gotFirstCostmap){
+    // std::cout << "setting firstcostmap" << std::endl;
+    gotFirstCostmap = true;
+    firstcostmap = mostrecentcostmap; //if its the first map we ever get, copy it to this
+    
+    std::cout<< "PRINTING FIRST COST MAP" << std::endl;
+    print_costmap(firstcostmap);
+  } else{
+    //if not the first, then compare it to the first
+     
+    // nav_msgs::msg::OccupancyGrid::SharedPtr newWallmap = mostrecentcostmap;
+    // std::cout << "calling costmapcomparison" << std::endl;
+
+    std::cout<< "PRINTING MOST RECENT COST MAP" << std::endl;
+
+    print_costmap(mostrecentcostmap);
+
+    std::cout << std::endl; 
+
+    nav_msgs::msg::OccupancyGrid newWallMap = costmapcomparison(firstcostmap, mostrecentcostmap);
+    // std::cout << "finished costmapcomparison, calling check_for_extra_pillars" << std::endl;
+    geometry_msgs::msg::Point::SharedPtr point = check_for_extra_pillars(firstcostmap, newWallMap);
+    // std::cout << "finished check_for_extra_pillars" << std::endl;
+    
+    // print_costmap(mostrecentcostmap);
+  }
+
+  
+  
+
+}
 
 int main(int argc,char **argv) {
  
