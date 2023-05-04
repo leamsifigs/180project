@@ -43,7 +43,7 @@ class Points {
 
 nav_msgs::msg::OccupancyGrid map;
 std::vector<int8_t, std::allocator<int8_t>> mapVector;
-std::vector<Points> pointCount;
+std::vector<Points>* pointCount = new std::vector<Points>;
 bool mapReceived = false;
 
 void mapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
