@@ -141,11 +141,11 @@ bool gotFirstCostmap = false;
 
 void costmapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
   
-  try{
-    delete mostrecentcostmap; //prevent memory leaks :)
-  }
+  // try{
+  //   delete mostrecentcostmap; //prevent memory leaks :)
+  // }
 
-  mostrecentcostmap = new nav_msgs::msg::OccupancyGrid::SharedPtr(*msg); //this could be wrong
+  mostrecentcostmap = msg; //this could be wrong
 
 
   int width = msg->info.width;
@@ -168,13 +168,14 @@ void costmapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
   
   if (!gotFirstCostmap){
     gotFirstCostmap = true;
-    firstcostmap = new nav_msgs::msg::OccupancyGrid::SharedPtr(*mostrecentcostmap); //if its the first map we ever get, copy it to this
+    firstcostmap = mostrecentcostmap; //if its the first map we ever get, copy it to this
 
     // print_costmap(firstcostmap);
   } else{
-    //if not the first, then compare it to the first 
+    //if not the first, then compare it to the first
+     
     // nav_msgs::msg::OccupancyGrid::SharedPtr newWallMap = generate_new_wall_map(); //FIXME replace this function call when it is implemented
-    geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(firstcostmap, newWallmap);
+    // geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(firstcostmap, newWallmap);
     
     // print_costmap(mostrecentcostmap);
   }
@@ -184,7 +185,7 @@ void costmapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
 
 }
 
-void print_costmap(const sensor_msgs::msg::LaserScan::SharedPtr costmap){
+void print_costmap(const nav_msgs::msg::OccupancyGrid::SharedPtr costmap){
 
   int width = costmap->info.width;
   int height = costmap->info.height;
@@ -192,7 +193,7 @@ void print_costmap(const sensor_msgs::msg::LaserScan::SharedPtr costmap){
   for (int i = 0; i < height; i++){ //for each row
 
     for (int j = 0; j < width; j++){ //for each column
-      std::cout << int(firstcostmap.data[i*width+j]) << " ";
+      std::cout << int(firstcostmap->data[i*width+j]) << " ";
     }
 
     std::cout << std::endl;
@@ -227,6 +228,7 @@ geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(nav_msgs::msg::Occu
   //returns coords of the pillar if found, otherwise returns nullptr
 
   geometry_msgs::msg::Point::SharedPtr pillar_location = nullptr;
+  // bool pillar_found = false;
   int width = newWallMap->info.width;
   int height = newWallMap->info.height;
 
@@ -236,9 +238,13 @@ geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(nav_msgs::msg::Occu
 
       for (int j = 0; j < width; j++){ //for each column
         
-        if( && count_cell_neighbors(newWallMap, i, j, width, height) >= 4){ //if there are at least 4 new nearby walls, get the coords of this cell
+        if(originalCostmap->data[i*width+j] == 0 && count_cell_neighbors(newWallMap, i, j, width, height) >= 4){ //if there are at least 4 new nearby walls, get the coords of this cell
+
+          //temporarily making it check the original map because the newwallmap isnt implemented yet
+
           //need to convert them to world coords
-          pillar_location = new geometry_msgs::msg::Point();
+          // pillar_location = new geometry_msgs::msg::Point();
+          pillar_location = std::make_shared<geometry_msgs::msg::Point>();
           pillar_location->z = 0;
           //200,200 is the center pillar's location (the origin of the world)
           // 384 array elements for a row/column, 20 meters for the side length of the map in world coords 384/20 = 19.2 array cells per gazebo meter
