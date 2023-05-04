@@ -174,8 +174,9 @@ void costmapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
   } else{
     //if not the first, then compare it to the first
      
-    // nav_msgs::msg::OccupancyGrid::SharedPtr newWallMap = generate_new_wall_map(); //FIXME replace this function call when it is implemented
-    // geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(firstcostmap, newWallmap);
+    // nav_msgs::msg::OccupancyGrid::SharedPtr newWallmap = mostrecentcostmap;
+    nav_msgs::msg::OccupancyGrid::SharedPtr newWallMap = costmapcomparison(firstcostmap, mostrecentcostmap);
+    geometry_msgs::msg::Point::SharedPtr point = check_for_extra_pillars(firstcostmap, newWallMap);
     
     // print_costmap(mostrecentcostmap);
   }
@@ -263,9 +264,9 @@ geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(nav_msgs::msg::Occu
 
       for (int j = 0; j < width; j++){ //for each column
         
-        if(originalCostmap->data[i*width+j] == 0 && count_cell_neighbors(newWallMap, i, j, width, height) >= 4){ //if there are at least 4 new nearby walls, get the coords of this cell
+        if(count_cell_neighbors(originalCostmap, i,j,width,height) == 0 && count_cell_neighbors(newWallMap, i, j, width, height) >= 4){ //if there are no walls on the original map surrounding this cell, and there are at least 4 new nearby walls, get the coords of this cell
 
-          //temporarily making it check the original map because the newwallmap isnt implemented yet
+          
 
           //need to convert them to world coords
           // pillar_location = new geometry_msgs::msg::Point();
