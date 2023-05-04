@@ -9,6 +9,10 @@ src/build/
 src/install/
 src/log/
 
+#
+
+src/therealtest.txt
+
 devel/
 logs/
 build/
