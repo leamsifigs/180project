@@ -242,6 +242,25 @@ int count_cell_neighbors(nav_msgs::msg::OccupancyGrid grid, int current_row, int
   return count;
 }
 
+int count_cell_neighbors_big_radius(nav_msgs::msg::OccupancyGrid grid, int current_row, int current_column, int width, int height){
+  int count = 0;
+  for(int i = -1; i < 2; i++){ //for each row in 3x3 grid
+    for (int j = -1; j < 2; j++){ //for 3 columns
+      if (i == 0 && j == 0) continue; //we dont need to look at the cell itself
+
+      int row = current_row + i;
+      int column = current_column + j;
+      if (row < 0 || row >= height || column < 0 || column >= width) continue; //this would be out of range, skip to avoid segfault
+
+      if (grid.data[row*width+column] == 1 || grid.data[row*width+column] == 2) count++; //count cell if it has a wall
+
+    }
+
+  }
+
+  return count;
+}
+
 geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(nav_msgs::msg::OccupancyGrid originalCostmap, nav_msgs::msg::OccupancyGrid newWallMap){ //only pass in a map that has ONLY walls that are not detected in the original costmap
   //returns coords of the pillar if found, otherwise returns nullptr
 
@@ -258,9 +277,9 @@ geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(nav_msgs::msg::Occu
 
       for (int j = 0; j < width; j++){ //for each column
         
-        if(count_cell_neighbors(originalCostmap, i,j,width,height) == 0 && count_cell_neighbors(newWallMap, i, j, width, height) >= 4){ //if there are no walls on the original map surrounding this cell, and there are at least 4 new nearby walls, get the coords of this cell
+        if(count_cell_neighbors_big_radius(originalCostmap, i,j,width,height) == 0 && count_cell_neighbors(newWallMap, i, j, width, height) >= 4){ //if there are no walls on the original map surrounding this cell, and there are at least 4 new nearby walls, get the coords of this cell
 
-          
+          //FIXME make sure to only do this if there is a wall here
 
           //need to convert them to world coords
           // pillar_location = new geometry_msgs::msg::Point();
@@ -271,8 +290,8 @@ geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(nav_msgs::msg::Occu
           pillar_location->z = 0;
           //200,200 is the center pillar's location (the origin of the world)
           // 384 array elements for a row/column, 20 meters for the side length of the map in world coords 384/20 = 19.2 array cells per gazebo meter
-          pillar_location->x = (j-200)/12;  //FIXME trying 12 based on algebraically solving for the conversion rate to get real coordinate location
-          pillar_location->y = -(i-200)/12;
+          pillar_location->x = (double(j-200))/double(20);  //FIXME trying 12 based on algebraically solving for the conversion rate to get real coordinate location
+          pillar_location->y = -(double(i-200))/double(20);
 
           std::cout << "Pillar wall at " << pillar_location->x << ", " << pillar_location->y << " (" << i << ", " << j << ")" <<std::endl; //for debug purposes we are printing every wall that could be part of the pillar
         }
