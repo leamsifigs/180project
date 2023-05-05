@@ -251,9 +251,14 @@ int count_cell_neighbors(nav_msgs::msg::OccupancyGrid grid, int current_row, int
 
 int count_cell_neighbors_big_radius(nav_msgs::msg::OccupancyGrid grid, int current_row, int current_column, int width, int height){
   int count = 0;
-  for(int i = -1; i < 2; i++){ //for each row in 3x3 grid
-    for (int j = -1; j < 2; j++){ //for 3 columns
+  for(int i = -2; i < 3; i++){ //for each row in 5x5 grid
+    for (int j = -2; j < 3; j++){ //for 5 columns
       if (i == 0 && j == 0) continue; //we dont need to look at the cell itself
+
+      if( i == -2 && j == -2) continue;//ignore corners
+      if( i == -2 && j == 2) continue;
+      if( i == 2  && j == -2) continue;
+      if( i == 2  && j == 2) continue;
 
       int row = current_row + i;
       int column = current_column + j;
