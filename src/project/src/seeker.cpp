@@ -374,6 +374,27 @@ void costmapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
 
 }
 
+void add_point(geometry_msgs::msg::Point point, std::vector<Points>* list_ptr){
+
+  double distance; 
+
+//iterate through list_ptr to see if a point is within 7 cell units, if so, count++ for point aleady in list,
+  for(auto it = list_ptr->begin(); it != list_ptr->end(); ++it){
+
+    distance = std::sqrt(std::pow(it->point.x - point.x, 2) + std::pow(it->point.y - point.y, 2)); 
+    if(distance <= 7){
+      it->count++;
+      return;
+    }else{
+      list_ptr->push_back(point);
+      it->count = 1;
+      return;
+    }
+
+  }
+
+}
+
 int main(int argc,char **argv) {
  
   rclcpp::init(argc,argv); // initialize ROS 
