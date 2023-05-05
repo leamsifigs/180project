@@ -452,23 +452,50 @@ int main(int argc,char **argv) {
 
 
  // test FollowWaypoints
-  geometry_msgs::msg::PoseStamped p1,p2,p3;
-    p1.pose.position.x = -2;
-    p1.pose.position.y = -1;
-    p1.pose.orientation.w = 2;
+  geometry_msgs::msg::PoseStamped p1,p2,p3,p4,p5,p6,p7,p8;
+    // p1.pose.position.x = -2;
+    // p1.pose.position.y = -1;
+    // p1.pose.orientation.w = 2;
 
-    p2.pose.position.x = -2;
-    p2.pose.position.y = 1;
+    // p2.pose.position.x = -2;
+    // p2.pose.position.y = 1;
 
-    p3.pose.position.x = 2;
-    p3.pose.position.y = 1;
+    // p3.pose.position.x = 2;
+    // p3.pose.position.y = 1;
+    p1.pose.position.x = -1;
+    p1.pose.position.y = 1.6;
 
+    p2.pose.position.x = 1;
+    p2.pose.position.y = 1.6;
 
-  std::vector<geometry_msgs::msg::PoseStamped> pointList;
-    pointList.push_back(p1);
-    pointList.push_back(p2);
-    pointList.push_back(p3);
-    navigator.FollowWaypoints(pointList);
+    p3.pose.position.x = 1.5;
+    p3.pose.position.y = 0.5;
+    
+    p4.pose.position.x = -0.5;
+    p4.pose.position.y = 0.5;
+    
+    p5.pose.position.x = -0.5;
+    p5.pose.position.y = -0.5;
+    
+    p6.pose.position.x = 2;
+    p6.pose.position.y = -0.5;
+
+    p7.pose.position.x = 0.675;
+    p7.pose.position.y = -1.75;
+
+    p8.pose.position.x = -1.5;
+    p8.pose.position.y = -1.5;
+
+  std::vector<geometry_msgs::msg::PoseStamped> waypointList;
+    waypointList.push_back(p1);
+    waypointList.push_back(p2);
+    waypointList.push_back(p3);
+    waypointList.push_back(p4);
+    waypointList.push_back(p5);
+    waypointList.push_back(p6);
+    waypointList.push_back(p7);
+    waypointList.push_back(p8);
+    navigator.FollowWaypoints(waypointList);
   while ( ! navigator.IsTaskComplete() ) {
     // rclcpp::spin_some(nodeh);
   }
@@ -478,6 +505,7 @@ int main(int argc,char **argv) {
   else
     std::cout << "FollowWaypoints goal was not achieved" << std::endl;
 
+  // return to origin
   goal_pos->position.x = -2;
   goal_pos->position.y = -0.5;
   goal_pos->orientation.w = 1;
