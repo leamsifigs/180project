@@ -255,10 +255,10 @@ int count_cell_neighbors_big_radius(nav_msgs::msg::OccupancyGrid grid, int curre
     for (int j = -2; j < 3; j++){ //for 5 columns
       if (i == 0 && j == 0) continue; //we dont need to look at the cell itself
 
-      if( i == -2 && j == -2) continue;//ignore corners
-      if( i == -2 && j == 2) continue;
-      if( i == 2  && j == -2) continue;
-      if( i == 2  && j == 2) continue;
+      // if( i == -2 && j == -2) continue;//ignore corners
+      // if( i == -2 && j == 2) continue;
+      // if( i == 2  && j == -2) continue;
+      // if( i == 2  && j == 2) continue;
 
       int row = current_row + i;
       int column = current_column + j;
@@ -289,7 +289,7 @@ geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(nav_msgs::msg::Occu
 
       for (int j = 0; j < width; j++){ //for each column
         
-        if(count_cell_neighbors_big_radius(originalCostmap, i,j,width,height) == 0 && count_cell_neighbors(newWallMap, i, j, width, height) >= 4){ //if there are no walls on the original map surrounding this cell, and there are at least 4 new nearby walls, get the coords of this cell
+        if(count_cell_neighbors_big_radius(originalCostmap, i,j,width,height) == 0 && count_cell_neighbors(newWallMap, i, j, width, height) >= 3){ //if there are no walls on the original map surrounding this cell, and there are at least 4 new nearby walls, get the coords of this cell
 
           //FIXME make sure to only do this if there is a wall here
 
@@ -303,7 +303,7 @@ geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(nav_msgs::msg::Occu
           //200,200 is the center pillar's location (the origin of the world)
           // 384 array elements for a row/column, 20 meters for the side length of the map in world coords 384/20 = 19.2 array cells per gazebo meter
           pillar_location->x = (double(j-200))/double(20);  //FIXME trying 12 based on algebraically solving for the conversion rate to get real coordinate location
-          pillar_location->y = -(double(i-200))/double(20);
+          pillar_location->y = -(double(i-200))/double(20) - 0.5; //subtract 0.5 because it adds 0.5 for all of them 
 
           std::cout << "Pillar wall at " << pillar_location->x << ", " << pillar_location->y << " (" << i << ", " << j << ")" <<std::endl; //for debug purposes we are printing every wall that could be part of the pillar
         }
@@ -385,7 +385,7 @@ geometry_msgs::msg::Point most_frequent_point(std::vector<Points>* list_ptr){
   geometry_msgs::msg::Point current_max_point;
   int max_count = 0;
 
-  for (int i = 0; i < list_ptr->size(); i++){
+  for (long unsigned int i = 0; i < list_ptr->size(); i++){
     if ( (*list_ptr)[i].count > max_count ){
       max_count = (*list_ptr)[i].count;
       current_max_point = (*list_ptr)[i].point;
@@ -451,22 +451,24 @@ int main(int argc,char **argv) {
 
   //create goal pose
   geometry_msgs::msg::Pose::SharedPtr goal_pos = std::make_shared<geometry_msgs::msg::Pose>();
-  goal_pos->position.x = 2;
-  goal_pos->position.y = 1;
-  goal_pos->orientation.w = 1;
+  // goal_pos->position.x = 2;
+  // goal_pos->position.y = 1;
+  // goal_pos->orientation.w = 1;
 
 
-  goal_pos->position.x = -0.5;  //move robot to face sample pillar
-  goal_pos->position.y = -1.5;
-  goal_pos->orientation.w = -1;
+  // goal_pos->position.x = -2;  //move robot to face sample pillar //was -0.5
+  // goal_pos->position.y = 1;
+  // goal_pos->orientation.w = 4.7;
 
-  // move to new pose
-  navigator.GoToPose(goal_pos);
+  // // move to new pose
+  // navigator.GoToPose(goal_pos);
 
-  //the while loops are so the code waits for the robot to complete its task
-  while ( ! navigator.IsTaskComplete() ) {
-    rclcpp::spin_some(nodeh);
-  }
+  // //the while loops are so the code waits for the robot to complete its task
+  // while ( ! navigator.IsTaskComplete() ) {
+  //   rclcpp::spin_some(nodeh);
+  // }
+
+  
 
   // gotFirstCostmap = false;
   // costmapcallback(mostrecentcostmap);
@@ -522,7 +524,7 @@ int main(int argc,char **argv) {
     waypointList.push_back(p8);
     navigator.FollowWaypoints(waypointList);
   while ( ! navigator.IsTaskComplete() ) {
-    // rclcpp::spin_some(nodeh);
+    rclcpp::spin_some(nodeh);
   }
   auto result = navigator.GetResult(); 
   if ( result == rclcpp_action::ResultCode::SUCCEEDED ) 
@@ -537,14 +539,14 @@ int main(int argc,char **argv) {
   navigator.GoToPose(goal_pos);
   // move to new pose
   while ( ! navigator.IsTaskComplete() ) {
-  
+    rclcpp::spin_some(nodeh);
   }
 
 
   // backup of 0.15 m (deafult distance)
   navigator.Backup();
   while ( ! navigator.IsTaskComplete() ) {
-    
+    rclcpp::spin_some(nodeh);
   }
 
 
