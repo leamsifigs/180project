@@ -407,8 +407,14 @@ void add_point(geometry_msgs::msg::Point point, std::vector<Points>* list_ptr){
       it->count++;
       return;
     }else{
-      list_ptr->push_back(point);
-      it->count = 1;
+      Points new_point;
+      new_point.point.x = point.x;
+      new_point.point.y = point.y;
+      new_point.point.z = 0;
+      new_point.count = 1;
+
+      list_ptr->push_back(new_point);
+    
       return;
     }
 
