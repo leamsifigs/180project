@@ -251,8 +251,8 @@ int count_cell_neighbors(nav_msgs::msg::OccupancyGrid grid, int current_row, int
 
 int count_cell_neighbors_big_radius(nav_msgs::msg::OccupancyGrid grid, int current_row, int current_column, int width, int height){
   int count = 0;
-  for(int i = -2; i < 3; i++){ //for each row in 5x5 grid
-    for (int j = -2; j < 3; j++){ //for 5 columns
+  for(int i = -3; i < 4; i++){ //for each row in 5x5 grid
+    for (int j = -3; j < 4; j++){ //for 5 columns
       if (i == 0 && j == 0) continue; //we dont need to look at the cell itself
 
       // if( i == -2 && j == -2) continue;//ignore corners
@@ -313,7 +313,7 @@ geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(nav_msgs::msg::Occu
 
     std::cout<< "PRINTING NEWWALLMAP (TWO IS A DETECTED PILLAR)" << std::endl;
 
-    print_costmap(newWallMap);
+    // print_costmap(newWallMap);
 
     std::cout << std::endl; 
 
@@ -353,7 +353,7 @@ void costmapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
     firstcostmap = mostrecentcostmap; //if its the first map we ever get, copy it to this
     
     std::cout<< "PRINTING FIRST COST MAP" << std::endl;
-    print_costmap(firstcostmap);
+    // print_costmap(firstcostmap);
   } else{
     //if not the first, then compare it to the first
      
@@ -362,7 +362,7 @@ void costmapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
 
     std::cout<< "PRINTING MOST RECENT COST MAP" << std::endl;
 
-    print_costmap(mostrecentcostmap);
+    // print_costmap(mostrecentcostmap);
 
     std::cout << std::endl; 
 
