@@ -43,7 +43,7 @@ class Points {
 
 nav_msgs::msg::OccupancyGrid map;
 std::vector<int8_t, std::allocator<int8_t>> mapVector;
-std::vector<Points> pointCount;
+std::vector<Points>* pointCount = new std::vector<Points>;
 bool mapReceived = false;
 
 void mapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
@@ -377,6 +377,22 @@ void costmapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
   
   
 
+}
+
+geometry_msgs::msg::Point most_frequent_point(std::vector<Points>* list_ptr){
+  //returns the point that occurs most frequently
+
+  geometry_msgs::msg::Point current_max_point;
+  int max_count = 0;
+
+  for (int i = 0; i < list_ptr->size(); i++){
+    if ( (*list_ptr)[i].count > max_count ){
+      max_count = (*list_ptr)[i].count;
+      current_max_point = (*list_ptr)[i].point;
+    }
+  }
+
+  return current_max_point;
 }
 
 void add_point(geometry_msgs::msg::Point point, std::vector<Points>* list_ptr){
