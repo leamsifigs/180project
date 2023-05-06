@@ -25,14 +25,8 @@ limitations under the License.
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 //before robot is able to update the cost map at all, store a copy of the global cost map
-//after each laser scan, compare the updated local cost map to the original global cost map
+//after each costmap update, compare the updated global cost map to the original global cost map
 
-//or try this
-
-//copy the map to a variable
-//after each laser scan, if there are x lasers that are detecting a wall that is not on the map, that is likely a pillar
-
-//do math to find the location
 
 class Points {
   public:
@@ -40,107 +34,7 @@ class Points {
     int count = 0;
 };
 
-
-nav_msgs::msg::OccupancyGrid map;
-std::vector<int8_t, std::allocator<int8_t>> mapVector;
 std::vector<Points>* pointCount = new std::vector<Points>;
-bool mapReceived = false;
-
-void mapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
-
-  if (mapReceived) return;
-
-  mapReceived = true;
-  mapVector = msg->data;
-  int width = msg->info.width;
-  int height = msg->info.height;
-
-  for (int i = 0; i < height; i++){ //for each row
-
-    for (int j = 0; j < width; j++){ //for each column
-      std::cout << int(msg->data[i*width+j]) << " ";
-    }
-    std::cout << std::endl;
-  }
-  return;
-}
-
-float angle_min, angle_max, angle_increment, time_increment, scan_time, range_min, range_max;
-// float ranges[];
-// float intensities[];
-
-void lasercallback(const sensor_msgs::msg::LaserScan::SharedPtr msg){
-
-  // Angle Min: 0
-  // Angle Max: 6.28
-  // Angle Increment: 0.017493
-  // Time Increment: 0
-  // Scan Time: 0
-  // Range Min: 0.12
-  // Range Max: 3.5
-
-  angle_min = msg->angle_min;
-  angle_max = msg->angle_max;
-  angle_increment = msg->angle_increment;
-  time_increment = msg->time_increment;
-  scan_time = msg->scan_time;
-  range_min = msg-> range_min;
-  range_max = msg->range_max;
-
-  // std::cout << "Angle Min: " << angle_min << std::endl;
-  // std::cout << "Angle Max: " << angle_max << std::endl;
-  // std::cout << "Angle Increment: " << angle_increment << std::endl;
-  // std::cout << "Time Increment: " << time_increment << std::endl;
-  // std::cout << "Scan Time: " << scan_time << std::endl;
-  // std::cout << "Range Min: " << range_min << std::endl;
-  // std::cout << "Range Max: " << range_max << std::endl;
-  // std::cout << std::endl;
-
-  for (auto it = msg->ranges.begin(); it != msg->ranges.end(); ++it){ //iterate through each laser reading
-    //first, we need to find the x and y coords for each laser 
-    if(!std::isinf(*it)){ // if the reading is not infinity
-      // std::cout << *it << ", ";
-
-      //chat gpt code
-
-      // std::shared_ptr<tf2_ros::Buffer> tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
-      // std::shared_ptr<tf2_ros::TransformListener> tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-
-
-      // geometry_msgs::msg::Point laser_point;
-      // laser_point.x = msg->ranges[0] * std::cos(msg->angle_min);
-      // laser_point.y = msg->ranges[0] * std::sin(msg->angle_min);
-      // laser_point.z = 0.0;
-
-      // // Transform the laser scan data from the sensor frame to the base frame of the robot
-      // geometry_msgs::msg::Transform sensor_to_base_transform = tf_buffer_->lookupTransform(
-      //   "base_link", msg->header.frame_id, laser_point.header.stamp, rclcpp::Duration::from_seconds(0.1));
-
-      // tf2::doTransform(laser_point, laser_point, sensor_to_base_transform);
-
-      // // Transform the laser scan data from the base frame of the robot to the world frame
-      // geometry_msgs::msg::Transform base_to_world_transform = tf_buffer_->lookupTransform(
-      //   "world", "base_link", laser_point.header.stamp, rclcpp::Duration::from_seconds(0.1));
-
-      // tf2::doTransform(laser_point, laser_point, base_to_world_transform);
-
-      // // Extract the position where the laser landed in the world frame
-      // RCLCPP_INFO(this->get_logger(), "Laser landed at (%f, %f, %f) in world frame",
-      //             laser_point.point.x, laser_point.point.y, laser_point.point.z);
-
-
-
-
-    }
-
-
-    // std::cout << *it << ", " << std::endl;
-  }
-
-  // std::cout << std::endl;
-
-
-}
 
 nav_msgs::msg::OccupancyGrid firstcostmap;
 nav_msgs::msg::OccupancyGrid mostrecentcostmap;
@@ -289,8 +183,8 @@ int count_cell_neighbors(nav_msgs::msg::OccupancyGrid grid, int current_row, int
 
 int count_cell_neighbors_big_radius(nav_msgs::msg::OccupancyGrid grid, int current_row, int current_column, int width, int height){
   int count = 0;
-  for(int i = -3; i < 4; i++){ //for each row in 5x5 grid
-    for (int j = -3; j < 4; j++){ //for 5 columns
+  for(int i = -3; i < 4; i++){ //for each row in 7x7 grid
+    for (int j = -3; j < 4; j++){ //for 7 columns
       if (i == 0 && j == 0) continue; //we dont need to look at the cell itself
 
       // if( i == -2 && j == -2) continue;//ignore corners
@@ -317,11 +211,9 @@ geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(nav_msgs::msg::Occu
   
 
   geometry_msgs::msg::Point::SharedPtr pillar_location = nullptr;
-  // bool pillar_found = false;
   int width = newWallMap.info.width;
   int height = newWallMap.info.height;
 
-  //potentially add a check for whether a new wall is one space next to an original wall (could potentially be the wall shifting over due to error)
 
   for (int i = 0; i < height; i++){ //for each row
 
@@ -329,10 +221,8 @@ geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(nav_msgs::msg::Occu
         
         if(count_cell_neighbors_big_radius(originalCostmap, i,j,width,height) == 0 && count_cell_neighbors(newWallMap, i, j, width, height) >= 3){ //if there are no walls on the original map surrounding this cell, and there are at least 4 new nearby walls, get the coords of this cell
 
-          //FIXME make sure to only do this if there is a wall here
 
           //need to convert them to world coords
-          // pillar_location = new geometry_msgs::msg::Point();
 
           newWallMap.data[i*width+j] = 2; //for debug reasons, detected pillar walls will be a 2
 
@@ -361,12 +251,9 @@ geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(nav_msgs::msg::Occu
 }
 
 void costmapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
-  
-  // try{
-  //   delete mostrecentcostmap; //prevent memory leaks :)
-  // }
+ 
 
-  mostrecentcostmap = *msg; //this could be wrong
+  mostrecentcostmap = *msg;
   // std::cout << "assigned mostrecentcostmap to message" << std::endl;
 
   int width = msg->info.width;
@@ -380,12 +267,8 @@ void costmapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
       } else{
         mostrecentcostmap.data[(height-1-i)*width+j] = 0;
       }
-      // std::cout << int(firstcostmap.data[i*width+j]) << " ";
     }
-    // std::cout << std::endl;
   }
-
-
   
   if (!gotFirstCostmap){
     // std::cout << "setting firstcostmap" << std::endl;
@@ -397,7 +280,6 @@ void costmapcallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg){
   } else{
     //if not the first, then compare it to the first
      
-    // nav_msgs::msg::OccupancyGrid::SharedPtr newWallmap = mostrecentcostmap;
     // std::cout << "calling costmapcomparison" << std::endl;
 
     std::cout<< "PRINTING MOST RECENT COST MAP" << std::endl;
@@ -443,11 +325,7 @@ int main(int argc,char **argv) {
   Navigator navigator(true,false); // create node with debug info but not verbose
 
   rclcpp::Node::SharedPtr nodeh = rclcpp::Node::make_shared("seeker");
-  // auto sub = nodeh->create_subscription<nav_msgs::msg::OccupancyGrid>("/map",1000,&mapcallback);
-  // auto laserSub = nodeh->create_subscription<sensor_msgs::msg::LaserScan>("/scan",1000,&lasercallback); //set up subscription for laser
   auto globalcostmapSub = nodeh->create_subscription<nav_msgs::msg::OccupancyGrid>("/global_costmap/costmap",1000,&costmapcallback); //set up subscription for costmaps
-  // rclcpp::spin(nodeh);
-
 
   // first: it is mandatory to initialize the pose of the robot
   geometry_msgs::msg::Pose::SharedPtr init = std::make_shared<geometry_msgs::msg::Pose>();
@@ -466,44 +344,9 @@ int main(int argc,char **argv) {
 
   //create goal pose
   geometry_msgs::msg::Pose::SharedPtr goal_pos = std::make_shared<geometry_msgs::msg::Pose>();
-  // goal_pos->position.x = 2;
-  // goal_pos->position.y = 1;
-  // goal_pos->orientation.w = 1;
 
-
-  // goal_pos->position.x = -2;  //move robot to face sample pillar //was -0.5
-  // goal_pos->position.y = 1;
-  // goal_pos->orientation.w = 4.7;
-
-  // // move to new pose
-  // navigator.GoToPose(goal_pos);
-
-  // //the while loops are so the code waits for the robot to complete its task
-  // while ( ! navigator.IsTaskComplete() ) {
-  //   rclcpp::spin_some(nodeh);
-  // }
-
-  
-
-  // gotFirstCostmap = false;
-  // costmapcallback(mostrecentcostmap);
-
-  // nav_msgs::msg::OccupancyGrid tempcostmap = mostrecentcostmap;
-  // nav_msgs::msg::OccupancyGrid::SharedPtr costmap_ptr();
-  
-
-
- // test FollowWaypoints
+ //FollowWaypoints
   geometry_msgs::msg::PoseStamped p1,p2,p3,p4,p5,p6,p7,p8;
-    // p1.pose.position.x = -2;
-    // p1.pose.position.y = -1;
-    // p1.pose.orientation.w = 2;
-
-    // p2.pose.position.x = -2;
-    // p2.pose.position.y = 1;
-
-    // p3.pose.position.x = 2;
-    // p3.pose.position.y = 1;
     p1.pose.position.x = -1;
     p1.pose.position.y = 1.6;
 
@@ -576,10 +419,6 @@ int main(int argc,char **argv) {
 
   geometry_msgs::msg::Point pillar_location =  most_frequent_point(pointCount);
   std::cout << "Pillar is at: " << pillar_location.x << ", " <<pillar_location.y <<std::endl;
-
-
-  // complete here....
-  
 
   rclcpp::shutdown(); // shutdown ROS
   return 0;
