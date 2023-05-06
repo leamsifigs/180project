@@ -174,6 +174,44 @@ nav_msgs::msg::OccupancyGrid costmapcomparison(nav_msgs::msg::OccupancyGrid firs
   
 }  
 
+void add_point(geometry_msgs::msg::Point point, std::vector<Points>* list_ptr){
+
+  double distance; 
+
+  if (list_ptr->empty()){
+    Points new_point;
+    new_point.point.x = point.x;
+    new_point.point.y = point.y;
+    new_point.point.z = 0;
+    new_point.count = 1;
+
+    list_ptr->push_back(new_point);
+    return;
+  }
+
+//iterate through list_ptr to see if a point is within 7 cell units, if so, count++ for point aleady in list,
+  for(auto it = list_ptr->begin(); it != list_ptr->end(); ++it){
+
+    distance = std::sqrt(std::pow(it->point.x - point.x, 2) + std::pow(it->point.y - point.y, 2)); 
+    if(distance <= 13.0/20.0){
+      it->count++;
+      return;
+    }else{
+      Points new_point;
+      new_point.point.x = point.x;
+      new_point.point.y = point.y;
+      new_point.point.z = 0;
+      new_point.count = 1;
+
+      list_ptr->push_back(new_point);
+    
+      return;
+    }
+
+  }
+
+}
+
 void print_costmap(const nav_msgs::msg::OccupancyGrid::SharedPtr costmap){
 
   int width = costmap->info.width;
@@ -305,7 +343,9 @@ geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(nav_msgs::msg::Occu
           pillar_location->x = (double(j-200))/double(20);  //FIXME trying 12 based on algebraically solving for the conversion rate to get real coordinate location
           pillar_location->y = -(double(i-200))/double(20) - 0.5; //subtract 0.5 because it adds 0.5 for all of them 
 
+          
           std::cout << "Pillar wall at " << pillar_location->x << ", " << pillar_location->y << " (" << i << ", " << j << ")" <<std::endl; //for debug purposes we are printing every wall that could be part of the pillar
+          add_point(*pillar_location, pointCount);
         }
 
       }
@@ -395,32 +435,7 @@ geometry_msgs::msg::Point most_frequent_point(std::vector<Points>* list_ptr){
   return current_max_point;
 }
 
-void add_point(geometry_msgs::msg::Point point, std::vector<Points>* list_ptr){
 
-  double distance; 
-
-//iterate through list_ptr to see if a point is within 7 cell units, if so, count++ for point aleady in list,
-  for(auto it = list_ptr->begin(); it != list_ptr->end(); ++it){
-
-    distance = std::sqrt(std::pow(it->point.x - point.x, 2) + std::pow(it->point.y - point.y, 2)); 
-    if(distance <= 7){
-      it->count++;
-      return;
-    }else{
-      Points new_point;
-      new_point.point.x = point.x;
-      new_point.point.y = point.y;
-      new_point.point.z = 0;
-      new_point.count = 1;
-
-      list_ptr->push_back(new_point);
-    
-      return;
-    }
-
-  }
-
-}
 
 int main(int argc,char **argv) {
  
@@ -543,12 +558,24 @@ int main(int argc,char **argv) {
   }
 
 
+
   // backup of 0.15 m (deafult distance)
   navigator.Backup();
   while ( ! navigator.IsTaskComplete() ) {
     rclcpp::spin_some(nodeh);
   }
 
+  
+  //get most frequent pillar
+
+  std::cout <<" PRINTING ALL POINT CLUSTERS" << std::endl;
+  for(long unsigned int i = 0; i < pointCount->size(); i++){
+    std::cout << (*pointCount)[i].point.x << ", " << (*pointCount)[i].point.y << " Count: " << (*pointCount)[i].count << std::endl;
+  }
+  std::cout << std::endl;
+
+  geometry_msgs::msg::Point pillar_location =  most_frequent_point(pointCount);
+  std::cout << "Pillar is at: " << pillar_location.x << ", " <<pillar_location.y <<std::endl;
 
 
   // complete here....
