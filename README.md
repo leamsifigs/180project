@@ -53,6 +53,7 @@ Open two new terminal windows. If you haven't sourced ROS2 files and directories
 In one window run the following if you want run without the extra pillar:  
 ```bash
 cd ~/MRTP/MRTP
+. install/local_setup.bash
 export TURTLEBOT3_MODEL=waffle
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:/opt/ros/foxy/share/turtlebot3_gazebo/models
 ros2 launch gazeboenvs tb3_simulation.launch.py
@@ -62,6 +63,7 @@ or this if you want to try it with a added 10th pillar:
 
 ```bash
 cd ~/MRTP/MRTP
+. install/local_setup.bash
 export TURTLEBOT3_MODEL=waffle
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/MRTP/MRTP/src/gazeboenvs/models
 ros2 launch gazeboenvs tb3_simulation.launch.py
@@ -76,4 +78,4 @@ cd ~180project/src
 ros2 run project seeker > output.txt
 ```  
 
-we recommend piping the outpout to a file to make it easier to parse.  
+we recommend piping the output to a file to make it easier to parse.  
