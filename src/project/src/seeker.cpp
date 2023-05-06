@@ -219,7 +219,7 @@ geometry_msgs::msg::Point::SharedPtr check_for_extra_pillars(nav_msgs::msg::Occu
 
       for (int j = 0; j < width; j++){ //for each column
         
-        if(count_cell_neighbors_big_radius(originalCostmap, i,j,width,height) == 0 && count_cell_neighbors(newWallMap, i, j, width, height) >= 3){ //if there are no walls on the original map surrounding this cell, and there are at least 4 new nearby walls, get the coords of this cell
+        if( (newWallMap.data[i*width+j] == 1 || newWallMap.data[i*width+j] == 2) && count_cell_neighbors_big_radius(originalCostmap, i,j,width,height) == 0 && count_cell_neighbors(newWallMap, i, j, width, height) >= 3){ //if there are no walls on the original map surrounding this cell, and there are at least 4 new nearby walls, get the coords of this cell
 
 
           //need to convert them to world coords
